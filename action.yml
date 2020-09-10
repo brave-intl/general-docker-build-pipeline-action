@@ -1,15 +1,6 @@
-name: '"AWS CodeBuild run build" Action For GitHub Actions'
-description: 'Execute CodeBuild::startBuild for the current repo.'
-branding:
-  icon: 'cloud'
-  color: 'orange'
+name: 'GDBP: Start AWS CodeBuild Project via Lambda Function'
+description: 'Invokes an AWS Lambda function that starts and returns the ID of an AWS CodeBuild project and streams the build logs back to Github.'
 inputs:
-  project-name:
-    description: 'AWS CodeBuild Project Name'
-    required: true
-  buildspec-override:
-    description: 'Buildspec Override'
-    required: false
   env-vars-for-codebuild:
     description: 'Comma separated list of environment variables to send to CodeBuild'
     required: false
