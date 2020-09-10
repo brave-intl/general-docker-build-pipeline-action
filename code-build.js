@@ -34,9 +34,19 @@ function runBuild() {
   return build(sdk, params, config);
 }
 
-async function build(sdk, params, config) {
-  // Start the build
-  const start = await sdk.codeBuild.startBuild(params).promise();
+async function build(sdk, params) {
+  // Invoke the lambda to start the build
+  const lambdaParams = {
+    FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
+    Payload: JSON.stringify({
+      owner: params.owner,
+      repo: params.repo,
+      branch: params.branch,
+      sourceVersion: params.sourceVersion
+    })
+  }
+  const response = await sdk.lambda.invoke(lambdaParams).promise();
+  const start = JSON.parse(JSON.parse(response.Payload))
 
   // Wait for the build to "complete"
   return waitForBuildEndTime(sdk, start.build, config);
@@ -164,10 +174,10 @@ async function waitForBuildEndTime(
 }
 
 function githubInputs() {
-  const projectName = core.getInput("project-name", { required: true });
-  const disableSourceOverride =
-    core.getInput("disable-source-override", { required: false }) === "true";
-  const { owner, repo } = github.context.repo;
+  let { owner, repo } = github.context.repo;
+
+  const branch = process.env[`GITHUB_REF`].split("/")[2]
+
   const { payload } = github.context;
   // The github.context.sha is evaluated on import.
   // This makes it hard to test.
@@ -181,29 +191,6 @@ function githubInputs() {
       : process.env[`GITHUB_SHA`];
 
   assert(sourceVersion, "No source version could be evaluated.");
-  const buildspecOverride =
-    core.getInput("buildspec-override", { required: false }) || undefined;
-
-  const computeTypeOverride =
-    core.getInput("compute-type-override", { required: false }) || undefined;
-
-  const environmentTypeOverride =
-    core.getInput("environment-type-override", { required: false }) ||
-    undefined;
-
-  const imageOverride =
-    core.getInput("image-override", { required: false }) || undefined;
-
-  const imagePullCredentialsTypeOverride =
-    core.getInput("image-pull-credentials-type-override", {
-      required: false,
-    }) || undefined;
-
-  const envPassthrough = core
-    .getInput("env-vars-for-codebuild", { required: false })
-    .split(",")
-    .map((i) => i.trim())
-    .filter((i) => i !== "");
 
   const updateInterval =
     parseInt(
@@ -223,77 +210,42 @@ function githubInputs() {
     core.getInput("disable-github-env-vars", { required: false }) === "true";
 
   return {
-    projectName,
     owner,
     repo,
+    branch,
     sourceVersion,
-    buildspecOverride,
-    computeTypeOverride,
-    environmentTypeOverride,
-    imageOverride,
-    imagePullCredentialsTypeOverride,
-    envPassthrough,
-    updateInterval,
-    updateBackOff,
-    disableSourceOverride,
-    hideCloudWatchLogs,
-    disableGithubEnvVars,
   };
 }
 
 function inputs2Parameters(inputs) {
   const {
-    projectName,
     owner,
     repo,
+    branch,
     sourceVersion,
-    buildspecOverride,
-    computeTypeOverride,
-    environmentTypeOverride,
-    imageOverride,
-    imagePullCredentialsTypeOverride,
-    envPassthrough = [],
-    disableSourceOverride,
-    disableGithubEnvVars,
   } = inputs;
-
-  const sourceOverride = !disableSourceOverride
-    ? {
-        sourceVersion: sourceVersion,
-        sourceTypeOverride: "GITHUB",
-        sourceLocationOverride: `https://github.com/${owner}/${repo}.git`,
-      }
-    : {};
-
-  const environmentVariablesOverride = Object.entries(process.env)
-    .filter(
-      ([key]) =>
-        (!disableGithubEnvVars && key.startsWith("GITHUB_")) ||
-        envPassthrough.includes(key)
-    )
-    .map(([name, value]) => ({ name, value, type: "PLAINTEXT" }));
 
   // The idempotencyToken is intentionally not set.
   // This way the GitHub events can manage the builds.
   return {
-    projectName,
-    ...sourceOverride,
-    buildspecOverride,
-    computeTypeOverride,
-    environmentTypeOverride,
-    imageOverride,
-    imagePullCredentialsTypeOverride,
-    environmentVariablesOverride,
+    owner,
+    repo,
+    branch,
+    sourceVersion
   };
 }
 
 function buildSdk() {
   const codeBuild = new aws.CodeBuild({
-    customUserAgent: "aws-actions/aws-codebuild-run-build",
+    customUserAgent: "brave-intl/aws-codebuild-run-build",
   });
 
   const cloudWatchLogs = new aws.CloudWatchLogs({
-    customUserAgent: "aws-actions/aws-codebuild-run-build",
+    customUserAgent: "brave-intl/aws-codebuild-run-build",
+  });
+
+  const lambda = new aws.Lambda({
+    customUserAgent: "brave-intl/aws-codebuild-run-build",
   });
 
   // check if environment variable exists for the container credential provider
@@ -307,7 +259,7 @@ function buildSdk() {
     );
   }
 
-  return { codeBuild, cloudWatchLogs };
+  return { codeBuild, cloudWatchLogs, lambda };
 }
 
 function logName(Arn) {
