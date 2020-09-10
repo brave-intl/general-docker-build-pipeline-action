@@ -1,4 +1,4 @@
-name: 'GDBP: Start AWS CodeBuild Project via Lambda Function'
+name: 'General Docker Build Pipeline Action'
 description: 'Invokes an AWS Lambda function that starts and returns the ID of an AWS CodeBuild project and streams the build logs back to Github.'
 inputs:
   env-vars-for-codebuild:
