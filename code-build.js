@@ -121,7 +121,7 @@ async function waitForBuildEndTime(sdk, { id, logs }, nextToken) {
 function githubInputs() {
   let { owner, repo } = github.context.repo;
 
-  const branch = process.env[`GITHUB_REF`].split("/")[2]
+  const branch = (process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]).split("/")[2]
 
   const { payload } = github.context;
   // The github.context.sha is evaluated on import.
