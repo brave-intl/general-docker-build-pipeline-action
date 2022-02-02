@@ -26,7 +26,7 @@ function runBuild() {
   return build(sdk, params);
 }
 
-async function build(sdk, params, reproducible) {
+async function build(sdk, params) {
   // Invoke the lambda to start the build
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
