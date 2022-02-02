@@ -26,7 +26,7 @@ function runBuild() {
   return build(sdk, params);
 }
 
-async function build(sdk, params) {
+async function build(sdk, params, reproducible) {
   // Invoke the lambda to start the build
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
@@ -35,6 +35,7 @@ async function build(sdk, params) {
       repo: params.repo,
       branch: params.branch,
       sourceVersion: params.sourceVersion
+      reproducible: params.reproducible
     })
   }
   const response = await sdk.lambda.invoke(lambdaParams).promise();
@@ -123,6 +124,8 @@ function githubInputs() {
 
   const branch = (process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]).split("/")[2]
 
+  const reproducible = process.env[`REPRODUCIBLE`]
+
   const { payload } = github.context;
   // The github.context.sha is evaluated on import.
   // This makes it hard to test.
@@ -142,6 +145,7 @@ function githubInputs() {
     repo,
     branch,
     sourceVersion,
+    reproducible
   };
 }
 
@@ -151,6 +155,7 @@ function inputs2Parameters(inputs) {
     repo,
     branch,
     sourceVersion,
+    reproducible
   } = inputs;
 
   // The idempotencyToken is intentionally not set.
@@ -159,7 +164,8 @@ function inputs2Parameters(inputs) {
     owner,
     repo,
     branch,
-    sourceVersion
+    sourceVersion,
+    reproducible
   };
 }
 
