@@ -42,7 +42,7 @@ async function build(sdk, params) {
       owner: params.owner,
       repo: params.repo,
       branch: params.branch,
-      sourceVersion: params.sourceVersion
+      sourceVersion: params.sourceVersion,
       reproducible: params.reproducible
     })
   }
