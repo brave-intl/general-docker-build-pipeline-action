@@ -27,6 +27,7 @@ function runBuild() {
 }
 
 async function build(sdk, params) {
+  console.log("params.reproducible: ", params.reproducible);
   // Invoke the lambda to start the build
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
@@ -38,7 +39,9 @@ async function build(sdk, params) {
       reproducible: params.reproducible
     })
   }
+  console.log("lambda params: ", JSON.stringify(lambdaParams));
   const response = await sdk.lambda.invoke(lambdaParams).promise();
+  console.log("response: ", response.Payload);
   const start = JSON.parse(JSON.parse(response.Payload))
 
   // Wait for the build to "complete"
