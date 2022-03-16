@@ -21,12 +21,15 @@ function runBuild() {
   const sdk = buildSdk();
 
   // Get input options for startBuild
+  console.log("params.reproducible: ", params.reproducible);
   const params = inputs2Parameters(githubInputs());
 
+  console.log("perform build");
   return build(sdk, params);
 }
 
 async function build(sdk, params) {
+  console.log("params.reproducible: ", params.reproducible);
   // Invoke the lambda to start the build
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
@@ -38,7 +41,9 @@ async function build(sdk, params) {
       reproducible: params.reproducible
     })
   }
+  console.log("lambda params: ", JSON.stringify(lambdaParams));
   const response = await sdk.lambda.invoke(lambdaParams).promise();
+  console.log("response: ", response.Payload);
   const start = JSON.parse(JSON.parse(response.Payload))
 
   // Wait for the build to "complete"
@@ -124,6 +129,7 @@ function githubInputs() {
 
   const branch = (process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]).split("/")[2]
 
+  console.log("githubInputs - reproducible - ", process.env[`REPRODUCIBLE`]);
   const reproducible = process.env[`REPRODUCIBLE`]
 
   const { payload } = github.context;
