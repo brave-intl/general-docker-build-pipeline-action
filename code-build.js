@@ -20,18 +20,12 @@ function runBuild() {
   // get a codeBuild instance from the SDK
   const sdk = buildSdk();
 
-  const inputs = githubInputs();
-
-  const config = (({ updateInterval, updateBackOff, hideCloudWatchLogs }) => ({
-    updateInterval,
-    updateBackOff,
-    hideCloudWatchLogs,
-  }))(inputs);
-
   // Get input options for startBuild
-  const params = inputs2Parameters(inputs);
+  console.log("params.reproducible: ", params.reproducible);
+  const params = inputs2Parameters(githubInputs());
 
-  return build(sdk, params, config);
+  console.log("perform build");
+  return build(sdk, params);
 }
 
 async function build(sdk, params) {
@@ -182,6 +176,7 @@ function githubInputs() {
 
   const branch = (process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]).split("/")[2]
 
+  console.log("githubInputs - reproducible - ", process.env[`REPRODUCIBLE`]);
   const reproducible = process.env[`REPRODUCIBLE`]
 
   const { payload } = github.context;
