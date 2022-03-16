@@ -178,7 +178,13 @@ function githubInputs() {
   ).split("/")[2];
 
   console.log("githubInputs - reproducible - ", process.env[`REPRODUCIBLE`]);
-  const reproducible = process.env[`REPRODUCIBLE`];
+
+  // default to non-reproducible builds
+  var reproducible = false;
+  if (process.env[`REPRODUCIBLE`] == "true") {
+    // we want a reproducible build
+    reproducible = true;
+  }
 
   const { payload } = github.context;
   // The github.context.sha is evaluated on import.
