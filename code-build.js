@@ -1,7 +1,7 @@
 // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-const core = require("@actions/core");
+//const core = require("@actions/core");
 const github = require("@actions/github");
 const aws = require("aws-sdk");
 const assert = require("assert");
@@ -21,10 +21,9 @@ function runBuild() {
   const sdk = buildSdk();
 
   // Get input options for startBuild
-  console.log("params.reproducible: ", params.reproducible);
   const params = inputs2Parameters(githubInputs());
+  console.log("params.reproducible: ", params.reproducible);
 
-  console.log("perform build");
   return build(sdk, params);
 }
 
@@ -38,13 +37,13 @@ async function build(sdk, params) {
       repo: params.repo,
       branch: params.branch,
       sourceVersion: params.sourceVersion,
-      reproducible: params.reproducible
-    })
-  }
+      reproducible: params.reproducible,
+    }),
+  };
   console.log("lambda params: ", JSON.stringify(lambdaParams));
   const response = await sdk.lambda.invoke(lambdaParams).promise();
   console.log("response: ", response.Payload);
-  const start = JSON.parse(JSON.parse(response.Payload))
+  const start = JSON.parse(JSON.parse(response.Payload));
 
   // Wait for the build to "complete"
   return waitForBuildEndTime(sdk, start.build);
@@ -127,10 +126,12 @@ async function waitForBuildEndTime(sdk, { id, logs }, nextToken) {
 function githubInputs() {
   let { owner, repo } = github.context.repo;
 
-  const branch = (process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]).split("/")[2]
+  const branch = (
+    process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]
+  ).split("/")[2];
 
   console.log("githubInputs - reproducible - ", process.env[`REPRODUCIBLE`]);
-  const reproducible = process.env[`REPRODUCIBLE`]
+  const reproducible = process.env[`REPRODUCIBLE`];
 
   const { payload } = github.context;
   // The github.context.sha is evaluated on import.
@@ -151,18 +152,12 @@ function githubInputs() {
     repo,
     branch,
     sourceVersion,
-    reproducible
+    reproducible,
   };
 }
 
 function inputs2Parameters(inputs) {
-  const {
-    owner,
-    repo,
-    branch,
-    sourceVersion,
-    reproducible
-  } = inputs;
+  const { owner, repo, branch, sourceVersion, reproducible } = inputs;
 
   // The idempotencyToken is intentionally not set.
   // This way the GitHub events can manage the builds.
@@ -171,7 +166,7 @@ function inputs2Parameters(inputs) {
     repo,
     branch,
     sourceVersion,
-    reproducible
+    reproducible,
   };
 }
 
