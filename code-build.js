@@ -21,8 +21,10 @@ function runBuild() {
   const sdk = buildSdk();
 
   // Get input options for startBuild
+  console.log("params.reproducible: ", params.reproducible);
   const params = inputs2Parameters(githubInputs());
 
+  console.log("perform build");
   return build(sdk, params);
 }
 
@@ -127,6 +129,7 @@ function githubInputs() {
 
   const branch = (process.env[`GITHUB_REF_OVERRIDE`] || process.env[`GITHUB_REF`]).split("/")[2]
 
+  console.log("githubInputs - reproducible - ", process.env[`REPRODUCIBLE`]);
   const reproducible = process.env[`REPRODUCIBLE`]
 
   const { payload } = github.context;
