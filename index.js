@@ -15,6 +15,7 @@ module.exports = run;
 async function run() {
   console.log("*****STARTING ACTION*****");
   try {
+    console.log("about to build");
     const build = await runBuild();
     core.setOutput("aws-build-id", build.id);
 
