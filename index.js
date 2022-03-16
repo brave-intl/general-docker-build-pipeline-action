@@ -13,7 +13,7 @@ if (require.main === module) {
 module.exports = run;
 
 async function run() {
-  console.log("*****STARTING ACTION*****");
+  console.log("*****STARTING ACTION Updated*****");
   try {
     console.log("about to build");
     const build = await runBuild();
