@@ -1,7 +1,7 @@
 // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//const core = require("@actions/core");
+const core = require("@actions/core");
 const github = require("@actions/github");
 const aws = require("aws-sdk");
 const assert = require("assert");
@@ -28,6 +28,7 @@ function runBuild() {
 
 async function build(sdk, params) {
   // Invoke the lambda to start the build
+  const buildTime = (Date.now() / 1000).toString();
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
     Payload: JSON.stringify({
@@ -36,10 +37,16 @@ async function build(sdk, params) {
       branch: params.branch,
       sourceVersion: params.sourceVersion,
       reproducible: params.reproducible,
+      buildTime,
     }),
   };
   const response = await sdk.lambda.invoke(lambdaParams).promise();
   const start = JSON.parse(JSON.parse(response.Payload));
+
+  await core.summary
+    .addHeading("Image tag")
+    .addRaw(`${params.sourceVersion}-${buildTime}`)
+    .write();
 
   // Wait for the build to "complete"
   return waitForBuildEndTime(sdk, start.build, config);
