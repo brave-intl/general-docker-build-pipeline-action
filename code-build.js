@@ -43,12 +43,8 @@ async function build(sdk, params) {
   const response = await sdk.lambda.invoke(lambdaParams).promise();
   const start = JSON.parse(JSON.parse(response.Payload));
 
-  await core.summary
-    .addRaw(`Image tag: ${params.sourceVersion}-${Math.floor(buildTime)}`)
-    .write();
-
   await core.notice(
-    `Image tag: ${params.sourceVersion}-${Math.floor(buildTime)}`
+    `Built image tag: ${params.sourceVersion}-${Math.floor(buildTime)}`
   );
 
   // Wait for the build to "complete"
