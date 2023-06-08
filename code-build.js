@@ -44,9 +44,12 @@ async function build(sdk, params) {
   const start = JSON.parse(JSON.parse(response.Payload));
 
   await core.summary
-    .addHeading("Image tag")
-    .addRaw(`${params.sourceVersion}-${buildTime}`)
+    .addRaw(`Image tag: ${params.sourceVersion}-${Math.floor(buildTime)}`)
     .write();
+
+  await core.notice(
+    `Image tag: ${params.sourceVersion}-${Math.floor(buildTime)}`
+  );
 
   // Wait for the build to "complete"
   return waitForBuildEndTime(sdk, start.build, config);
