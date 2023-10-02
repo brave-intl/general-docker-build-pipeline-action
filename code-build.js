@@ -29,6 +29,7 @@ function runBuild() {
 async function build(sdk, params) {
   // Invoke the lambda to start the build
   const buildTime = (Date.now() / 1000).toString();
+  const imageTag = `${Math.floor(buildTime)}+${params.sourceVersion}`;
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
     Payload: JSON.stringify({
@@ -37,15 +38,13 @@ async function build(sdk, params) {
       branch: params.branch,
       sourceVersion: params.sourceVersion,
       reproducible: params.reproducible,
-      buildTime,
+      imageTag,
     }),
   };
   const response = await sdk.lambda.invoke(lambdaParams).promise();
   const start = JSON.parse(JSON.parse(response.Payload));
 
-  await core.notice(
-    `Built image tag: ${params.sourceVersion}-${Math.floor(buildTime)}`
-  );
+  await core.notice(`Built image tag: ${imageTag}`);
 
   // Wait for the build to "complete"
   return waitForBuildEndTime(sdk, start.build, config);
