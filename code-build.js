@@ -20,13 +20,21 @@ function runBuild() {
   // get a codeBuild instance from the SDK
   const sdk = buildSdk();
 
-  // Get input options for startBuild
-  const params = inputs2Parameters(githubInputs());
+  const inputs = githubInputs();
 
-  return build(sdk, params);
+  const config = (({ updateInterval, updateBackOff, hideCloudWatchLogs }) => ({
+    updateInterval,
+    updateBackOff,
+    hideCloudWatchLogs,
+  }))(inputs);
+
+  // Get input options for startBuild
+  const params = inputs2Parameters(inputs);
+
+  return build(sdk, params, config);
 }
 
-async function build(sdk, params) {
+async function build(sdk, params, config) {
   // Invoke the lambda to start the build
   const buildTime = (Date.now() / 1000).toString();
   const imageTag = `${Math.floor(buildTime)}+${params.sourceVersion}`;
