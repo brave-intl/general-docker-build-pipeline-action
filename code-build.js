@@ -20,10 +20,18 @@ function runBuild() {
   // get a codeBuild instance from the SDK
   const sdk = buildSdk();
 
-  // Get input options for startBuild
-  const params = inputs2Parameters(githubInputs());
+  const inputs = githubInputs();
 
-  return build(sdk, params);
+  const config = (({ updateInterval, updateBackOff, hideCloudWatchLogs }) => ({
+    updateInterval,
+    updateBackOff,
+    hideCloudWatchLogs,
+  }))(inputs);
+
+  // Get input options for startBuild
+  const params = inputs2Parameters(inputs);
+
+  return build(sdk, params, config);
 }
 
 async function build(sdk, params) {
@@ -47,16 +55,23 @@ async function build(sdk, params) {
   await core.notice(`Built image tag: ${imageTag}`);
 
   // Wait for the build to "complete"
-  return waitForBuildEndTime(sdk, start.build);
+  return waitForBuildEndTime(sdk, start.build, config);
 }
 
-async function waitForBuildEndTime(sdk, { id, logs }, nextToken) {
-  const {
-    codeBuild,
-    cloudWatchLogs,
-    wait = 1000 * 30,
-    backOff = 1000 * 15,
-  } = sdk;
+async function waitForBuildEndTime(
+  sdk,
+  { id, logs },
+  { updateInterval, updateBackOff, hideCloudWatchLogs },
+  seqEmptyLogs,
+  totalEvents,
+  throttleCount,
+  nextToken
+) {
+  const { codeBuild, cloudWatchLogs } = sdk;
+
+  totalEvents = totalEvents || 0;
+  seqEmptyLogs = seqEmptyLogs || 0;
+  throttleCount = throttleCount || 0;
 
   // Get the CloudWatchLog info
   const startFromHead = true;
@@ -64,14 +79,18 @@ async function waitForBuildEndTime(sdk, { id, logs }, nextToken) {
   const { logGroupName, logStreamName } = logName(cloudWatchLogsArn);
 
   let errObject = false;
-
   // Check the state
   const [batch, cloudWatch = {}] = await Promise.all([
     codeBuild.batchGetBuilds({ ids: [id] }).promise(),
-    // The CloudWatchLog _may_ not be set up, only make the call if we have a logGroupName
-    logGroupName &&
-      cloudWatchLogs
-        .getLogEvents({ logGroupName, logStreamName, startFromHead, nextToken })
+    !hideCloudWatchLogs &&
+      logGroupName &&
+      cloudWatchLogs // only make the call if hideCloudWatchLogs is not enabled and a logGroupName exists
+        .getLogEvents({
+          logGroupName,
+          logStreamName,
+          startFromHead,
+          nextToken,
+        })
         .promise(),
   ]).catch((err) => {
     errObject = err;
@@ -86,16 +105,24 @@ async function waitForBuildEndTime(sdk, { id, logs }, nextToken) {
   if (errObject) {
     //We caught an error in trying to make the AWS api call, and are now checking to see if it was just a rate limiting error
     if (errObject.message && errObject.message.search("Rate exceeded") !== -1) {
-      //We were rate-limited, so add `backOff` seconds to the wait time
-      let newWait = wait + backOff;
+      // We were rate-limited, so add backoff with Full Jitter, ref: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+      let jitteredBackOff = Math.floor(
+        Math.random() * (updateBackOff * 2 ** throttleCount)
+      );
+      let newWait = updateInterval + jitteredBackOff;
+      throttleCount++;
 
       //Sleep before trying again
       await new Promise((resolve) => setTimeout(resolve, newWait));
 
       // Try again from the same token position
       return waitForBuildEndTime(
-        { ...sdk, wait: newWait },
+        { ...sdk },
         { id, logs },
+        { updateInterval: newWait, updateBackOff },
+        seqEmptyLogs,
+        totalEvents,
+        throttleCount,
         nextToken
       );
     } else {
@@ -108,20 +135,48 @@ async function waitForBuildEndTime(sdk, { id, logs }, nextToken) {
   const [current] = batch.builds;
   const { nextForwardToken, events = [] } = cloudWatch;
 
+  // GetLogEvents can return partial/empty responses even when there is data.
+  // We wait for two consecutive empty log responses to minimize false positive on EOF.
+  // Empty response counter starts after any logs have been received, or when the build completes.
+  if (events.length == 0 && (totalEvents > 0 || current.endTime)) {
+    seqEmptyLogs++;
+  } else {
+    seqEmptyLogs = 0;
+  }
+  totalEvents += events.length;
+
   // stdout the CloudWatchLog (everyone likes progress...)
   // CloudWatchLogs have line endings.
   // I trim and then log each line
   // to ensure that the line ending is OS specific.
   events.forEach(({ message }) => console.log(message.trimEnd()));
 
-  // We did it! We can stop looking!
-  if (current.endTime && !events.length) return current;
+  // Stop after the build is ended and we've received two consecutive empty log responses
+  if (current.endTime && seqEmptyLogs >= 2) {
+    return current;
+  }
 
   // More to do: Sleep for a few seconds to avoid rate limiting
-  await new Promise((resolve) => setTimeout(resolve, wait));
+  // If never throttled and build is complete, halve CWL polling delay to minimize latency
+  await new Promise((resolve) =>
+    setTimeout(
+      resolve,
+      current.endTime && throttleCount == 0
+        ? updateInterval / 2
+        : updateInterval
+    )
+  );
 
   // Try again
-  return waitForBuildEndTime(sdk, current, nextForwardToken);
+  return waitForBuildEndTime(
+    sdk,
+    current,
+    { updateInterval, updateBackOff, hideCloudWatchLogs },
+    seqEmptyLogs,
+    totalEvents,
+    throttleCount,
+    nextForwardToken
+  );
 }
 
 function githubInputs() {
@@ -151,6 +206,23 @@ function githubInputs() {
       : process.env[`GITHUB_SHA`];
 
   assert(sourceVersion, "No source version could be evaluated.");
+
+  const updateInterval =
+    parseInt(
+      core.getInput("update-interval", { required: false }) || "30",
+      10
+    ) * 1000;
+  const updateBackOff =
+    parseInt(
+      core.getInput("update-back-off", { required: false }) || "15",
+      10
+    ) * 1000;
+
+  const hideCloudWatchLogs =
+    core.getInput("hide-cloudwatch-logs", { required: false }) === "true";
+
+  const disableGithubEnvVars =
+    core.getInput("disable-github-env-vars", { required: false }) === "true";
 
   return {
     owner,
@@ -188,22 +260,33 @@ function buildSdk() {
     customUserAgent: "brave-intl/aws-codebuild-run-build",
   });
 
-  assert(
-    codeBuild.config.credentials && cloudWatchLogs.config.credentials,
-    "No credentials. Try adding @aws-actions/configure-aws-credentials earlier in your job to set up AWS credentials."
-  );
+  // check if environment variable exists for the container credential provider
+  if (
+    !process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI &&
+    !process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+  ) {
+    assert(
+      codeBuild.config.credentials && cloudWatchLogs.config.credentials,
+      "No credentials. Try adding @aws-actions/configure-aws-credentials earlier in your job to set up AWS credentials."
+    );
+  }
 
   return { codeBuild, cloudWatchLogs, lambda };
 }
 
 function logName(Arn) {
-  const [logGroupName, logStreamName] = Arn.split(":log-group:")
-    .pop()
-    .split(":log-stream:");
-  if (logGroupName === "null" || logStreamName === "null")
-    return {
-      logGroupName: undefined,
-      logStreamName: undefined,
-    };
-  return { logGroupName, logStreamName };
+  const logs = {
+    logGroupName: undefined,
+    logStreamName: undefined,
+  };
+  if (Arn) {
+    const [logGroupName, logStreamName] = Arn.split(":log-group:")
+      .pop()
+      .split(":log-stream:");
+    if (logGroupName !== "null" && logStreamName !== "null") {
+      logs.logGroupName = logGroupName;
+      logs.logStreamName = logStreamName;
+    }
+  }
+  return logs;
 }
