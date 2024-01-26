@@ -230,6 +230,10 @@ function githubInputs() {
     branch,
     sourceVersion,
     reproducible,
+    updateInterval,
+    updateBackOff,
+    hideCloudWatchLogs,
+    disableGithubEnvVars,
   };
 }
 
