@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "lint": "prettier -c *.js *.json *.md; eslint **.js",
-    "format": "prettier --write -c *.js *.json *.md test/*.js; eslint --fix **.js test/**.js",
-    "format:check": "prettier --check -c *.js *.json *.md test/*.js; eslint --fix **.js test/**.js",
+    "format": "prettier --write -c *.js *.json *.md; eslint --fix **.js",
+    "format:check": "prettier --check -c *.js *.json *.md; eslint --fix **.js",
     "package": "ncc build index.js -o dist",
     "build": "ncc build index.js -o dist",
     "test": "mocha"
