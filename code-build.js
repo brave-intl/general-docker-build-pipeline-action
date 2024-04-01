@@ -37,7 +37,7 @@ function runBuild() {
 async function build(sdk, params, config) {
   // Invoke the lambda to start the build
   const buildTime = (Date.now() / 1000).toString();
-  const imageTag = `${Math.floor(buildTime)}+${params.sourceVersion}`;
+  const imageTag = `${params.sourceVersion}-${Math.floor(buildTime)}`;
   const lambdaParams = {
     FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
     Payload: JSON.stringify({
