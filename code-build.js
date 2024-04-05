@@ -3,7 +3,17 @@
 
 const core = require("@actions/core");
 const github = require("@actions/github");
-const aws = require("aws-sdk");
+
+const {
+  CloudWatchLogsClient,
+  GetLogEventsCommand,
+} = require("@aws-sdk/client-cloudwatch-logs");
+const {
+  CodeBuildClient,
+  BatchGetBuildsCommand,
+} = require("@aws-sdk/client-codebuild");
+const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda");
+
 const assert = require("assert");
 
 module.exports = {
@@ -38,19 +48,22 @@ async function build(sdk, params, config) {
   // Invoke the lambda to start the build
   const buildTime = (Date.now() / 1000).toString();
   const imageTag = `${params.sourceVersion}-${Math.floor(buildTime)}`;
-  const lambdaParams = {
-    FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
-    Payload: JSON.stringify({
-      owner: params.owner,
-      repo: params.repo,
-      branch: params.branch,
-      sourceVersion: params.sourceVersion,
-      reproducible: params.reproducible,
-      imageTag,
-    }),
-  };
-  const response = await sdk.lambda.invoke(lambdaParams).promise();
-  const start = JSON.parse(JSON.parse(response.Payload));
+  const response = await sdk.lambda.send(
+    new InvokeCommand({
+      FunctionName: "GeneralDockerBuildPipelineLambdaFunction",
+      Payload: JSON.stringify({
+        owner: params.owner,
+        repo: params.repo,
+        branch: params.branch,
+        sourceVersion: params.sourceVersion,
+        reproducible: params.reproducible,
+        imageTag,
+      }),
+    })
+  );
+  const start = JSON.parse(
+    JSON.parse(Buffer.from(response.Payload).toString())
+  );
 
   await core.notice(`Built image tag: ${imageTag}`);
 
@@ -81,17 +94,21 @@ async function waitForBuildEndTime(
   let errObject = false;
   // Check the state
   const [batch, cloudWatch = {}] = await Promise.all([
-    codeBuild.batchGetBuilds({ ids: [id] }).promise(),
+    codeBuild.send(
+      new BatchGetBuildsCommand({
+        ids: [id],
+      })
+    ),
     !hideCloudWatchLogs &&
       logGroupName &&
-      cloudWatchLogs // only make the call if hideCloudWatchLogs is not enabled and a logGroupName exists
-        .getLogEvents({
+      cloudWatchLogs.send(
+        new GetLogEventsCommand({
           logGroupName,
           logStreamName,
           startFromHead,
           nextToken,
         })
-        .promise(),
+      ),
   ]).catch((err) => {
     errObject = err;
     /* Returning [] here so that the assignment above
@@ -252,15 +269,15 @@ function inputs2Parameters(inputs) {
 }
 
 function buildSdk() {
-  const codeBuild = new aws.CodeBuild({
+  const codeBuild = new CodeBuildClient({
     customUserAgent: "brave-intl/aws-codebuild-run-build",
   });
 
-  const cloudWatchLogs = new aws.CloudWatchLogs({
+  const cloudWatchLogs = new CloudWatchLogsClient({
     customUserAgent: "brave-intl/aws-codebuild-run-build",
   });
 
-  const lambda = new aws.Lambda({
+  const lambda = new LambdaClient({
     customUserAgent: "brave-intl/aws-codebuild-run-build",
   });
 
