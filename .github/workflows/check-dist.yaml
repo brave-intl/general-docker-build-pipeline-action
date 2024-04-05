@@ -8,10 +8,10 @@ name: Check dist
 
 on:
   push:
-    branches:
-      - master
-    paths-ignore:
-      - '**.md'
+    # branches:
+    #   - master
+    # paths-ignore:
+    #   - '**.md'
   pull_request:
     paths-ignore:
       - '**.md'
@@ -44,9 +44,12 @@ jobs:
             exit 1
           fi
 
-      # If dist/ was different than expected, upload the expected version as an artifact
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && steps.diff.outcome == 'failure' }}
-        with:
-          name: dist
-          path: dist/
+      # If dist/ was different than expected, push the changes
+      - if: ${{ failure() && steps.diff.outcome == 'failure' }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "<>"
+          
+          git add dist
+          git commit -m "Build new dist/index.js"
+          git push origin ${GITHUB_HEAD_REF}
