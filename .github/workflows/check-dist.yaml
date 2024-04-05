@@ -7,7 +7,7 @@
 name: Check dist
 
 on:
-  push:
+  # push:
     # branches:
     #   - master
     # paths-ignore:
