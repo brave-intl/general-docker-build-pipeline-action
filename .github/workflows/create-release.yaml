@@ -1,0 +1,23 @@
+name: Create release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  check-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Release
+        run: |
+          gh repo set-default brave-intl/general-docker-build-pipeline-action
+          tag=$(gh release view --json tagName --jq .tagName)
+          gh release create $(echo "$tag" | awk -F. '{$NF++; print $1"."$2"."$NF}') --generate-notes
