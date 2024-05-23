@@ -57,6 +57,7 @@ async function build(sdk, params, config) {
         branch: params.branch,
         sourceVersion: params.sourceVersion,
         reproducible: params.reproducible,
+        gpSshPrivateKey: params.gpSshPrivateKey,
         imageTag,
       }),
     })
@@ -241,6 +242,10 @@ function githubInputs() {
   const disableGithubEnvVars =
     core.getInput("disable-github-env-vars", { required: false }) === "true";
 
+  const gpSshPrivateKey = core.getInput("gp-ssh-private-key", {
+    required: false,
+  });
+
   return {
     owner,
     repo,
@@ -251,11 +256,19 @@ function githubInputs() {
     updateBackOff,
     hideCloudWatchLogs,
     disableGithubEnvVars,
+    gpSshPrivateKey,
   };
 }
 
 function inputs2Parameters(inputs) {
-  const { owner, repo, branch, sourceVersion, reproducible } = inputs;
+  const {
+    owner,
+    repo,
+    branch,
+    sourceVersion,
+    reproducible,
+    gpSshPrivateKey,
+  } = inputs;
 
   // The idempotencyToken is intentionally not set.
   // This way the GitHub events can manage the builds.
@@ -265,6 +278,7 @@ function inputs2Parameters(inputs) {
     branch,
     sourceVersion,
     reproducible,
+    gpSshPrivateKey,
   };
 }
 
