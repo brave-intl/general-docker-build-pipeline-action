@@ -57,6 +57,7 @@ async function build(sdk, params, config) {
         branch: params.branch,
         sourceVersion: params.sourceVersion,
         reproducible: params.reproducible,
+        gpSshPrivateKeyB64: params.gpSshPrivateKeyB64,
         imageTag,
       }),
     })
@@ -100,15 +101,15 @@ async function waitForBuildEndTime(
       })
     ),
     !hideCloudWatchLogs &&
-      logGroupName &&
-      cloudWatchLogs.send(
-        new GetLogEventsCommand({
-          logGroupName,
-          logStreamName,
-          startFromHead,
-          nextToken,
-        })
-      ),
+    logGroupName &&
+    cloudWatchLogs.send(
+      new GetLogEventsCommand({
+        logGroupName,
+        logStreamName,
+        startFromHead,
+        nextToken,
+      })
+    ),
   ]).catch((err) => {
     errObject = err;
     /* Returning [] here so that the assignment above
@@ -241,6 +242,10 @@ function githubInputs() {
   const disableGithubEnvVars =
     core.getInput("disable-github-env-vars", { required: false }) === "true";
 
+  const gpSshPrivateKeyB64 = core.getInput("gp-ssh-private-key-b64", {
+    required: false,
+  });
+
   return {
     owner,
     repo,
@@ -251,11 +256,19 @@ function githubInputs() {
     updateBackOff,
     hideCloudWatchLogs,
     disableGithubEnvVars,
+    gpSshPrivateKeyB64,
   };
 }
 
 function inputs2Parameters(inputs) {
-  const { owner, repo, branch, sourceVersion, reproducible } = inputs;
+  const {
+    owner,
+    repo,
+    branch,
+    sourceVersion,
+    reproducible,
+    gpSshPrivateKeyB64,
+  } = inputs;
 
   // The idempotencyToken is intentionally not set.
   // This way the GitHub events can manage the builds.
@@ -265,6 +278,7 @@ function inputs2Parameters(inputs) {
     branch,
     sourceVersion,
     reproducible,
+    gpSshPrivateKeyB64,
   };
 }
 

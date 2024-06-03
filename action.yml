@@ -19,6 +19,9 @@ inputs:
   disable-github-env-vars:
     description: 'Set to `true` if you want do disable github environment variables in codebuild'
     required: false
+  gp-ssh-private-key-b64:
+    description: 'Base64 encoded deploy key for private repo access - used for fetching private dependencies'
+    required: false
 outputs:
   aws-build-id:
     description: 'The AWS CodeBuild Build ID for this build.'
