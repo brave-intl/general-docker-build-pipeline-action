@@ -41,10 +41,6 @@ function runBuild() {
   // Get input options for startBuild
   const params = inputs2Parameters(inputs);
 
-  console.log(inputs)
-  console.log(params)
-  console.log(params.gpSshPrivateKeyB64)
-
   return build(sdk, params, config);
 }
 
