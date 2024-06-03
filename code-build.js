@@ -57,7 +57,7 @@ async function build(sdk, params, config) {
         branch: params.branch,
         sourceVersion: params.sourceVersion,
         reproducible: params.reproducible,
-        gpSshPrivateKey: params.gpSshPrivateKey,
+        gpSshPrivateKeyB64: params.gpSshPrivateKeyB64,
         imageTag,
       }),
     })
@@ -242,7 +242,7 @@ function githubInputs() {
   const disableGithubEnvVars =
     core.getInput("disable-github-env-vars", { required: false }) === "true";
 
-  const gpSshPrivateKey = core.getInput("gp-ssh-private-key", {
+  const gpSshPrivateKeyB64 = core.getInput("gp-ssh-private-key-b64", {
     required: false,
   });
 
@@ -256,7 +256,7 @@ function githubInputs() {
     updateBackOff,
     hideCloudWatchLogs,
     disableGithubEnvVars,
-    gpSshPrivateKey,
+    gpSshPrivateKeyB64,
   };
 }
 
@@ -267,7 +267,7 @@ function inputs2Parameters(inputs) {
     branch,
     sourceVersion,
     reproducible,
-    gpSshPrivateKey,
+    gpSshPrivateKeyB64,
   } = inputs;
 
   // The idempotencyToken is intentionally not set.
@@ -278,7 +278,7 @@ function inputs2Parameters(inputs) {
     branch,
     sourceVersion,
     reproducible,
-    gpSshPrivateKey,
+    gpSshPrivateKeyB64,
   };
 }
 
