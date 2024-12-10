@@ -63,6 +63,7 @@ async function build(sdk, params, config) {
         branch: params.branch,
         sourceVersion: params.sourceVersion,
         reproducible: params.reproducible,
+        useNix: params.useNix,
         gpSshPrivateKeyB64: params.gpSshPrivateKeyB64,
         imageTag,
       }),
@@ -107,15 +108,15 @@ async function waitForBuildEndTime(
       })
     ),
     !hideCloudWatchLogs &&
-    logGroupName &&
-    cloudWatchLogs.send(
-      new GetLogEventsCommand({
-        logGroupName,
-        logStreamName,
-        startFromHead,
-        nextToken,
-      })
-    ),
+      logGroupName &&
+      cloudWatchLogs.send(
+        new GetLogEventsCommand({
+          logGroupName,
+          logStreamName,
+          startFromHead,
+          nextToken,
+        })
+      ),
   ]).catch((err) => {
     errObject = err;
     /* Returning [] here so that the assignment above
@@ -212,9 +213,13 @@ function githubInputs() {
 
   // default to non-reproducible builds
   var reproducible = false;
+  var useNix = false;
   if (process.env[`REPRODUCIBLE`] == "true") {
     // we want a reproducible build
     reproducible = true;
+    if (process.env[`USE_NIX`] == "true") {
+      useNix = true;
+    }
   }
 
   const { payload } = github.context;
@@ -258,6 +263,7 @@ function githubInputs() {
     branch,
     sourceVersion,
     reproducible,
+    useNix,
     updateInterval,
     updateBackOff,
     hideCloudWatchLogs,
@@ -273,6 +279,7 @@ function inputs2Parameters(inputs) {
     branch,
     sourceVersion,
     reproducible,
+    useNix,
     gpSshPrivateKeyB64,
   } = inputs;
 
@@ -284,6 +291,7 @@ function inputs2Parameters(inputs) {
     branch,
     sourceVersion,
     reproducible,
+    useNix,
     gpSshPrivateKeyB64,
   };
 }
