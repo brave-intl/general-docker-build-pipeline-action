@@ -45,7 +45,7 @@
   },
   "lint-staged": {
     "*.js": [
-      "prettier --write --ignore-path dist/**",
+      "prettier --write",
       "eslint --fix --ignore-pattern dist/**"
     ],
     "*.{json,md}": [
