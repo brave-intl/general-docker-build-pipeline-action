@@ -11,7 +11,6 @@ const {
 const {
   CodeBuildClient,
   BatchGetBuildsCommand,
-  StopBuildCommand,
 } = require("@aws-sdk/client-codebuild");
 const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda");
 
@@ -33,16 +32,10 @@ function runBuild() {
 
   const inputs = githubInputs();
 
-  const config = (({
+  const config = (({ updateInterval, updateBackOff, hideCloudWatchLogs }) => ({
     updateInterval,
     updateBackOff,
     hideCloudWatchLogs,
-    stopOnSignals,
-  }) => ({
-    updateInterval,
-    updateBackOff,
-    hideCloudWatchLogs,
-    stopOnSignals,
   }))(inputs);
 
   // Get input options for startBuild
@@ -76,25 +69,8 @@ async function build(sdk, params, config) {
 
   await core.notice(`Built image tag: ${imageTag}`);
 
-  // Set up signal handling to stop the build on cancellation
-  setupSignalHandlers(sdk, start.build.id, config.stopOnSignals);
-
   // Wait for the build to "complete"
   return waitForBuildEndTime(sdk, start.build, config);
-}
-
-function setupSignalHandlers(sdk, id, signals) {
-  signals.forEach((s) => {
-    core.info(`Installing signal handler for ${s}`);
-    process.on(s, async () => {
-      try {
-        core.info(`Caught ${s}, attempting to stop build...`);
-        await sdk.codeBuild.send(new StopBuildCommand({ id }));
-      } catch (ex) {
-        core.error(`Error stopping build: ${ex}`);
-      }
-    });
-  });
 }
 
 async function waitForBuildEndTime(
@@ -276,12 +252,6 @@ function githubInputs() {
     required: false,
   });
 
-  const stopOnSignals = core
-    .getInput("stop-on-signals", { required: false })
-    .split(",")
-    .map((i) => i.trim())
-    .filter((i) => i !== "");
-
   return {
     owner,
     repo,
@@ -294,7 +264,6 @@ function githubInputs() {
     hideCloudWatchLogs,
     disableGithubEnvVars,
     gpSshPrivateKeyB64,
-    stopOnSignals,
   };
 }
 
