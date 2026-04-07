@@ -43,6 +43,9 @@
       "pre-commit": "lint-staged"
     }
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
+  },
   "lint-staged": {
     "*.js": [
       "prettier --write",
