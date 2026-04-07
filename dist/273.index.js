@@ -3,7 +3,7 @@ exports.id = 273;
 exports.ids = [273];
 exports.modules = {
 
-/***/ 7475:
+/***/ 8974:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -122,7 +122,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.resolveHttpAuthSchemeConfig = exports.resolveStsAuthConfig = exports.defaultSTSHttpAuthSchemeProvider = exports.defaultSTSHttpAuthSchemeParametersProvider = void 0;
 const core_1 = __webpack_require__(9963);
 const util_middleware_1 = __webpack_require__(2390);
-const STSClient_1 = __webpack_require__(7475);
+const STSClient_1 = __webpack_require__(8974);
 const defaultSTSHttpAuthSchemeParametersProvider = async (config, context, input) => {
     return {
         operation: (0, util_middleware_1.getSmithyContext)(context).operation,
@@ -391,7 +391,7 @@ exports.ruleSet = _data;
 
 
 
-var STSClient = __webpack_require__(7475);
+var STSClient = __webpack_require__(8974);
 var smithyClient = __webpack_require__(3570);
 var middlewareEndpoint = __webpack_require__(2918);
 var EndpointParameters = __webpack_require__(1765);
