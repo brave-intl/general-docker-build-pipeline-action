@@ -1223,7 +1223,7 @@ const EXPIRE_WINDOW_MS = 5 * 60 * 1000;
 const REFRESH_MESSAGE = `To refresh this SSO session run 'aws sso login' with the corresponding profile.`;
 
 const getSsoOidcClient = async (ssoRegion, init = {}, callerClientConfig) => {
-    const { SSOOIDCClient } = await __webpack_require__.e(/* import() */ 334).then(__webpack_require__.t.bind(__webpack_require__, 7334, 23));
+    const { SSOOIDCClient } = await __webpack_require__.e(/* import() */ 334).then(__webpack_require__.t.bind(__webpack_require__, 2190, 23));
     const coalesce = (prop) => init.clientConfig?.[prop] ?? init.parentClientConfig?.[prop] ?? callerClientConfig?.[prop];
     const ssoOidcClient = new SSOOIDCClient(Object.assign({}, init.clientConfig ?? {}, {
         region: ssoRegion ?? init.clientConfig?.region,
@@ -1234,7 +1234,7 @@ const getSsoOidcClient = async (ssoRegion, init = {}, callerClientConfig) => {
 };
 
 const getNewSsoOidcToken = async (ssoToken, ssoRegion, init = {}, callerClientConfig) => {
-    const { CreateTokenCommand } = await __webpack_require__.e(/* import() */ 334).then(__webpack_require__.t.bind(__webpack_require__, 7334, 23));
+    const { CreateTokenCommand } = await __webpack_require__.e(/* import() */ 334).then(__webpack_require__.t.bind(__webpack_require__, 2190, 23));
     const ssoOidcClient = await getSsoOidcClient(ssoRegion, init, callerClientConfig);
     return ssoOidcClient.send(new CreateTokenCommand({
         clientId: ssoToken.clientId,
