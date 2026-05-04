@@ -21,7 +21,7 @@
     "@aws-sdk/client-codebuild": "^3.1004.0",
     "@aws-sdk/client-lambda": "^3.1004.0",
     "ncc": "^0.3.6",
-    "uuid": "^3.4.0",
+    "uuid": "^14.0.0",
     "yargs": "^15.3.1"
   },
   "bin": "./local.js",
